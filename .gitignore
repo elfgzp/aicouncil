@@ -1,0 +1,41 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Build output
+/build/
+/dist/
+
+# Test output
+*.test
+*.out
+coverage.txt
+coverage.html
+
+# Go vendor
+vendor/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Config with secrets
+config.yaml
+providers/*.yaml
+!providers/*.example.yaml
+
+# Session data
+sessions/
+
+# Logs
+*.log
