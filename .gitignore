@@ -1,22 +1,11 @@
-# Binaries
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
+# Dependencies
+node_modules/
+.pnpm-store/
 
 # Build output
-/build/
-/dist/
-
-# Test output
-*.test
-*.out
-coverage.txt
-coverage.html
-
-# Go vendor
-vendor/
+dist/
+build/
+*.tsbuildinfo
 
 # IDE
 .idea/
@@ -29,13 +18,26 @@ vendor/
 .DS_Store
 Thumbs.db
 
-# Config with secrets
-config.yaml
-providers/*.yaml
-!providers/*.example.yaml
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+
+# Test
+coverage/
+.nyc_output/
+
+# OpenCode plugin development
+.opencode/
+*.pid
 
 # Session data
 sessions/
 
-# Logs
-*.log
+# Temporary files
+tmp/
+temp/
