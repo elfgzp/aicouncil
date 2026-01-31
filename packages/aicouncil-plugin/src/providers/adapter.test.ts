@@ -45,12 +45,22 @@ describe('ProviderAdapter', () => {
       adapter.setClient(mockClient as any)
     })
 
-    it('should throw error if client not initialized', async () => {
+    it('should fall back to direct API when client not initialized', async () => {
       const uninitializedAdapter = new ProviderAdapter()
 
+      // For unsupported providers, it should throw an error about direct API not being supported
       await expect(
         uninitializedAdapter.call(mockParticipant, 'Hello')
-      ).rejects.toThrow('OpenCode client not initialized')
+      ).rejects.toThrow('Direct API not supported for provider: test-provider')
+    })
+
+    it('should throw error if client not initialized for unsupported providers', async () => {
+      const uninitializedAdapter = new ProviderAdapter()
+
+      // For providers without direct API support, it should throw the appropriate error
+      await expect(
+        uninitializedAdapter.call(mockParticipant, 'Hello')
+      ).rejects.toThrow('Direct API not supported')
     })
 
     it('should call model with prompt', async () => {

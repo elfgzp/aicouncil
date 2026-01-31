@@ -16,7 +16,9 @@ export const nextInputSchema = z.object({
   additionalContext: z.string().optional().describe('Additional context or guidance for the next round'),
 })
 
-export type NextInput = z.infer<typeof nextInputSchema>
+export type NextInput = {
+  additionalContext?: string
+}
 
 /**
  * Next tool output

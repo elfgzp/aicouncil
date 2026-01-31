@@ -15,7 +15,9 @@ export const statusInputSchema = z.object({
   includeMessages: z.boolean().optional().default(false).describe('Whether to include message history'),
 })
 
-export type StatusInput = z.infer<typeof statusInputSchema>
+export type StatusInput = {
+  includeMessages?: boolean
+}
 
 /**
  * Status tool output

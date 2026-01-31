@@ -9,10 +9,11 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "bun run --cwd packages/aicouncil-plugin build",
-    "dev": "bun run --cwd packages/aicouncil-plugin dev",
-    "typecheck": "bun run --cwd packages/aicouncil-plugin typecheck",
-    "test": "bun run --cwd packages/aicouncil-plugin test"
+    "build": "npm run --workspace=@aicouncil/opencode-plugin build",
+    "dev": "npm run --workspace=@aicouncil/opencode-plugin dev",
+    "typecheck": "npm run --workspace=@aicouncil/opencode-plugin typecheck",
+    "test": "npm run --workspace=@aicouncil/opencode-plugin test",
+    "test:coverage": "npm run --workspace=@aicouncil/opencode-plugin test:coverage"
   },
   "keywords": [
     "opencode",

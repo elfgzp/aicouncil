@@ -15,7 +15,9 @@ export const endInputSchema = z.object({
   generateSummary: z.boolean().optional().default(true).describe('Whether to generate a final summary'),
 })
 
-export type EndInput = z.infer<typeof endInputSchema>
+export type EndInput = {
+  generateSummary?: boolean
+}
 
 /**
  * End tool output

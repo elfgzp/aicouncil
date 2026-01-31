@@ -1,13 +1,142 @@
 /**
  * Provider Adapter Module
- * 
+ *
  * Adapts different AI providers to a unified interface
  * Uses OpenCode's SDK to call different models
+ * Falls back to direct API calls when no OpenCode client is available
  */
 
 import type { ProviderConfig, Participant } from '../types'
 import { t } from '../i18n'
 import { timeout, retry } from '../utils'
+
+/**
+ * Call Kimi API directly
+ */
+async function callKimiAPI(
+  apiKey: string,
+  modelId: string,
+  prompt: string,
+  options: ModelCallOptions = {}
+): Promise<ModelResponse> {
+  const { systemPrompt, timeout: timeoutMs = 60000 } = options
+
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+
+  try {
+    const response = await fetch('https://api.kimi.com/coding/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: modelId,
+        messages: [
+          ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+          { role: 'user', content: prompt },
+        ],
+        temperature: options.temperature ?? 0.7,
+        max_tokens: options.maxTokens ?? 2000,
+      }),
+      signal: controller.signal,
+    })
+
+    clearTimeout(timeoutId)
+
+    if (!response.ok) {
+      const error = await response.text()
+      throw new Error(`Kimi API error: ${response.status} - ${error}`)
+    }
+
+    const data = await response.json() as {
+      choices?: Array<{ message?: { content?: string }; finish_reason?: string }>
+      usage?: { input_tokens?: number; output_tokens?: number }
+    }
+    const content = data.choices?.[0]?.message?.content
+
+    if (!content) {
+      throw new Error('Empty response from Kimi API')
+    }
+
+    return {
+      content,
+      usage: {
+        inputTokens: data.usage?.input_tokens,
+        outputTokens: data.usage?.output_tokens,
+      },
+      finishReason: data.choices?.[0]?.finish_reason,
+    }
+  } catch (error) {
+    clearTimeout(timeoutId)
+    throw error
+  }
+}
+
+/**
+ * Call MiniMax API directly
+ */
+async function callMiniMaxAPI(
+  apiKey: string,
+  modelId: string,
+  prompt: string,
+  options: ModelCallOptions = {}
+): Promise<ModelResponse> {
+  const { systemPrompt, timeout: timeoutMs = 60000 } = options
+
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+
+  try {
+    // MiniMax uses Anthropic-compatible endpoint
+    const response = await fetch('https://api.minimaxi.com/anthropic/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: modelId,
+        messages: [{ role: 'user', content: prompt }],
+        system: systemPrompt,
+        max_tokens: options.maxTokens ?? 2000,
+        temperature: options.temperature ?? 0.7,
+      }),
+      signal: controller.signal,
+    })
+
+    clearTimeout(timeoutId)
+
+    if (!response.ok) {
+      const error = await response.text()
+      throw new Error(`MiniMax API error: ${response.status} - ${error}`)
+    }
+
+    const data = await response.json() as {
+      content?: Array<{ text?: string }>
+      usage?: { input_tokens?: number; output_tokens?: number }
+      stop_reason?: string
+    }
+    const content = data.content?.[0]?.text
+
+    if (!content) {
+      throw new Error('Empty response from MiniMax API')
+    }
+
+    return {
+      content,
+      usage: {
+        inputTokens: data.usage?.input_tokens,
+        outputTokens: data.usage?.output_tokens,
+      },
+      finishReason: data.stop_reason,
+    }
+  } catch (error) {
+    clearTimeout(timeoutId)
+    throw error
+  }
+}
 
 /**
  * Response from a model call
@@ -77,6 +206,42 @@ export class ProviderAdapter {
   }
 
   /**
+   * Call a model with a prompt directly via API
+   * Used when OpenCode client is not available (e.g., in tests)
+   */
+  private async callDirectAPI(
+    participant: Participant,
+    prompt: string,
+    options: ModelCallOptions = {}
+  ): Promise<ModelResponse> {
+    const { provider } = participant
+    const { systemPrompt, timeout: timeoutMs = this.defaultTimeout } = options
+
+    const callFn = async (): Promise<ModelResponse> => {
+      switch (provider.id) {
+        case 'kimi':
+          return callKimiAPI(provider.apiKey, provider.modelId, prompt, {
+            systemPrompt,
+            timeout: timeoutMs,
+            temperature: options.temperature,
+            maxTokens: options.maxTokens,
+          })
+        case 'minimax':
+          return callMiniMaxAPI(provider.apiKey, provider.modelId, prompt, {
+            systemPrompt,
+            timeout: timeoutMs,
+            temperature: options.temperature,
+            maxTokens: options.maxTokens,
+          })
+        default:
+          throw new Error(`Direct API not supported for provider: ${provider.id}`)
+      }
+    }
+
+    return callFn()
+  }
+
+  /**
    * Call a model with a prompt
    */
   async call(
@@ -84,10 +249,6 @@ export class ProviderAdapter {
     prompt: string,
     options: ModelCallOptions = {}
   ): Promise<ModelResponse> {
-    if (!this.client) {
-      throw new Error('OpenCode client not initialized')
-    }
-
     const {
       systemPrompt,
       maxTokens,
@@ -97,6 +258,22 @@ export class ProviderAdapter {
     } = options
 
     const { provider } = participant
+
+    // If no OpenCode client is set, fall back to direct API calls
+    if (!this.client) {
+      const callWithTimeout = () =>
+        timeout(
+          this.callDirectAPI(participant, prompt, options),
+          timeoutMs,
+          t('errors.timeout', { participant: participant.name })
+        )
+
+      return retry(callWithTimeout, {
+        maxRetries: retries,
+        initialDelay: 1000,
+        backoffFactor: 2,
+      })
+    }
 
     const callFn = async (): Promise<ModelResponse> => {
       const response = await this.client!.session.prompt({

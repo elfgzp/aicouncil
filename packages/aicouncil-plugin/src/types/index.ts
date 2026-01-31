@@ -178,6 +178,18 @@ export interface CouncilEvent<T = unknown> {
 export type EventHandler<T = unknown> = (event: CouncilEvent<T>) => void | Promise<void>
 
 /**
+ * Model response
+ */
+export interface ModelResponse {
+  content: string
+  usage?: {
+    input_tokens?: number
+    output_tokens?: number
+  }
+  finishReason?: string
+}
+
+/**
  * Council callbacks for UI updates
  */
 export interface CouncilCallbacks {

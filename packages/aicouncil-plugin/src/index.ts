@@ -112,5 +112,33 @@ export * from './tools'
 export * from './i18n'
 export * from './utils'
 
-// Default export
-export default createAICouncilPlugin
+// OpenCode plugin format
+// Export an async function that receives context and returns hooks
+export default async function AICouncilPlugin(ctx: {
+  project: { root: string; name: string }
+  client: Parameters<typeof providerAdapter.setClient>[0]
+  directory: string
+  worktree: string
+  $: unknown
+}) {
+  // Initialize the council with the OpenCode client
+  getCouncil()
+
+  // Set the client for API calls
+  providerAdapter.setClient(ctx.client)
+
+  // Get all tools
+  const tools = createAllTools()
+
+  // Convert tools to OpenCode format (object with tool name as key)
+  const toolHooks: Record<string, unknown> = {}
+  for (const tool of tools) {
+    toolHooks[tool.name] = tool
+  }
+
+  // Return hooks - tool should be an object, not a function
+  return {
+    tool: toolHooks,
+  }
+}
+

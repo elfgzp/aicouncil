@@ -4,7 +4,7 @@
  * Helper functions for writing tests.
  */
 
-import { vi } from 'vitest'
+import { vi, expect } from 'vitest'
 
 /**
  * Wait for a specified duration

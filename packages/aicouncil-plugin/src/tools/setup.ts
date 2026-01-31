@@ -26,7 +26,18 @@ export const setupInputSchema = z.object({
   locale: z.enum(['en', 'zh', 'zh-TW', 'ja', 'ko']).optional().default('en').describe('Language for messages'),
 })
 
-export type SetupInput = z.infer<typeof setupInputSchema>
+export type SetupInput = {
+  models: Array<{
+    providerId: string
+    modelId?: string
+    name?: string
+    apiKey?: string
+    baseURL?: string
+    isHost?: boolean
+  }>
+  maxRounds?: number
+  locale?: 'en' | 'zh' | 'zh-TW' | 'ja' | 'ko'
+}
 
 /**
  * Setup tool output

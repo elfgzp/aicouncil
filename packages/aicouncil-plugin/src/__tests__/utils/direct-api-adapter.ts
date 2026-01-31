@@ -54,7 +54,10 @@ async function callKimiAPI(
       throw new Error(`Kimi API error: ${response.status} - ${error}`)
     }
 
-    const data = await response.json()
+    const data = await response.json() as {
+      choices?: Array<{ message?: { content?: string }; finish_reason?: string }>
+      usage?: { input_tokens?: number; output_tokens?: number }
+    }
     const content = data.choices?.[0]?.message?.content
 
     if (!content) {
@@ -111,7 +114,11 @@ async function callMiniMaxAPI(
       throw new Error(`MiniMax API error: ${response.status} - ${error}`)
     }
 
-    const data = await response.json()
+    const data = await response.json() as {
+      content?: Array<{ text?: string }>
+      usage?: { input_tokens?: number; output_tokens?: number }
+      stop_reason?: string
+    }
     const content = data.content?.[0]?.text
 
     if (!content) {

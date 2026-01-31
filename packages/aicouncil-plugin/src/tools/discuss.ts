@@ -17,7 +17,10 @@ export const discussInputSchema = z.object({
   continueDiscussion: z.boolean().optional().default(false).describe('Whether to continue an existing discussion'),
 })
 
-export type DiscussInput = z.infer<typeof discussInputSchema>
+export type DiscussInput = {
+  topic: string
+  continueDiscussion?: boolean
+}
 
 /**
  * Discuss tool output

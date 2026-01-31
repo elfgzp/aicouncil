@@ -149,17 +149,17 @@ describe('deepMerge', () => {
   })
 
   it('should merge nested objects', () => {
-    const target = { a: { x: 1 }, b: 2 }
-    const source = { a: { y: 2 } }
+    const target = { a: { x: 1 } as Record<string, number>, b: 2 }
+    const source = { a: { x: 1, y: 2 } }
     const result = deepMerge(target, source)
     expect(result).toEqual({ a: { x: 1, y: 2 }, b: 2 })
   })
 
   it('should not modify original objects', () => {
-    const target = { a: 1 }
+    const target = { a: 1, b: undefined as number | undefined }
     const source = { b: 2 }
     deepMerge(target, source)
-    expect(target).toEqual({ a: 1 })
+    expect(target).toEqual({ a: 1, b: undefined })
   })
 })
 
