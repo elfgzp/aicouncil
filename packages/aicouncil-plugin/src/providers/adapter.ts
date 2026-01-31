@@ -11,7 +11,7 @@ import { t } from '../i18n'
 import { timeout, retry } from '../utils'
 
 /**
- * Call Kimi API directly
+ * Call Kimi API directly (Anthropic-compatible endpoint)
  */
 async function callKimiAPI(
   apiKey: string,
@@ -25,20 +25,20 @@ async function callKimiAPI(
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
   try {
-    const response = await fetch('https://api.kimi.com/coding/v1/chat/completions', {
+    // Kimi uses Anthropic-compatible endpoint for Claude Code
+    const response = await fetch('https://api.kimi.com/coding/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
+        'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
         model: modelId,
-        messages: [
-          ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
-          { role: 'user', content: prompt },
-        ],
-        temperature: options.temperature ?? 0.7,
+        messages: [{ role: 'user', content: prompt }],
+        system: systemPrompt,
         max_tokens: options.maxTokens ?? 2000,
+        temperature: options.temperature ?? 0.7,
       }),
       signal: controller.signal,
     })
@@ -51,10 +51,11 @@ async function callKimiAPI(
     }
 
     const data = await response.json() as {
-      choices?: Array<{ message?: { content?: string }; finish_reason?: string }>
+      content?: Array<{ type: string; text?: string }>
       usage?: { input_tokens?: number; output_tokens?: number }
+      stop_reason?: string
     }
-    const content = data.choices?.[0]?.message?.content
+    const content = data.content?.[0]?.text
 
     if (!content) {
       throw new Error('Empty response from Kimi API')
@@ -66,7 +67,7 @@ async function callKimiAPI(
         inputTokens: data.usage?.input_tokens,
         outputTokens: data.usage?.output_tokens,
       },
-      finishReason: data.choices?.[0]?.finish_reason,
+      finishReason: data.stop_reason,
     }
   } catch (error) {
     clearTimeout(timeoutId)
@@ -75,7 +76,7 @@ async function callKimiAPI(
 }
 
 /**
- * Call MiniMax API directly
+ * Call MiniMax API directly (Anthropic-compatible endpoint)
  */
 async function callMiniMaxAPI(
   apiKey: string,
@@ -95,6 +96,7 @@ async function callMiniMaxAPI(
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
+        'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
         model: modelId,
@@ -114,11 +116,13 @@ async function callMiniMaxAPI(
     }
 
     const data = await response.json() as {
-      content?: Array<{ text?: string }>
+      content?: Array<{ type: string; text?: string }>
       usage?: { input_tokens?: number; output_tokens?: number }
       stop_reason?: string
     }
-    const content = data.content?.[0]?.text
+    // Find the first text content in the response (skip thinking blocks)
+    const textContent = data.content?.find(c => c.type === 'text')
+    const content = textContent?.text
 
     if (!content) {
       throw new Error('Empty response from MiniMax API')
