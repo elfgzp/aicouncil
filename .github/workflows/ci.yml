@@ -26,7 +26,7 @@ jobs:
         run: npm run typecheck
 
       - name: Run smoke tests
-        run: npm test -- --testPathPattern="smoke"
+        run: cd packages/aicouncil-plugin && npm run test:smoke
 
   # Full test suite on multiple Node versions
   test:

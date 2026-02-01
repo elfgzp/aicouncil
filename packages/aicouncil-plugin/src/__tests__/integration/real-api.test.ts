@@ -342,11 +342,17 @@ describe('API Key Validation', () => {
     console.log('KIMI_API_KEY present:', !!process.env.KIMI_API_KEY)
     console.log('MINIMAX_API_KEY present:', !!process.env.MINIMAX_API_KEY)
 
-    expect(process.env.KIMI_API_KEY).toBeDefined()
-    expect(process.env.KIMI_API_KEY?.startsWith('sk-')).toBe(true)
+    // Only validate API keys if explicitly running real API tests
+    if (process.env.ENABLE_REAL_API_TESTS === 'true') {
+      expect(process.env.KIMI_API_KEY).toBeDefined()
+      expect(process.env.KIMI_API_KEY?.startsWith('sk-')).toBe(true)
 
-    expect(process.env.MINIMAX_API_KEY).toBeDefined()
-    expect(process.env.MINIMAX_API_KEY?.length).toBeGreaterThan(10)
+      expect(process.env.MINIMAX_API_KEY).toBeDefined()
+      expect(process.env.MINIMAX_API_KEY?.length).toBeGreaterThan(10)
+    } else {
+      // Skip validation when not running real API tests
+      console.log('Skipping API key validation (ENABLE_REAL_API_TESTS not set)')
+    }
   })
 })
 
