@@ -16,8 +16,10 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
+    "test:smoke": "vitest run smoke",
+    "test:unit": "vitest run --testPathIgnorePatterns=\"integration|smoke|real-api\"",
     "test:real-api": "ENABLE_REAL_API_TESTS=true vitest run src/__tests__/integration/real-api.test.ts",
-    "test:integration": "vitest run src/__tests__/integration"
+    "test:integration": "vitest run src/__tests__/integration --testPathIgnorePatterns=\"real-api\""
   },
   "dependencies": {
     "zod": "^3.23.0"

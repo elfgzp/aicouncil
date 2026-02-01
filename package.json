@@ -13,7 +13,12 @@
     "dev": "npm run --workspace=@aicouncil/opencode-plugin dev",
     "typecheck": "npm run --workspace=@aicouncil/opencode-plugin typecheck",
     "test": "npm run --workspace=@aicouncil/opencode-plugin test",
-    "test:coverage": "npm run --workspace=@aicouncil/opencode-plugin test:coverage"
+    "test:coverage": "npm run --workspace=@aicouncil/opencode-plugin test:coverage",
+    "test:smoke": "cd packages/aicouncil-plugin && npm run test:smoke",
+    "validate": "./scripts/validate.sh --quick",
+    "validate:full": "./scripts/validate.sh --full",
+    "validate:ci": "./scripts/validate.sh --ci",
+    "verify-build": "./scripts/verify-build.sh"
   },
   "keywords": [
     "opencode",

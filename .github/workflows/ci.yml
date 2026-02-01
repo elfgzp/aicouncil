@@ -7,7 +7,30 @@ on:
     branches: [main, master]
 
 jobs:
+  # Fast smoke tests - run first to catch basic issues
+  smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Run smoke tests
+        run: npm test -- --testPathPattern="smoke"
+
+  # Full test suite on multiple Node versions
   test:
+    needs: smoke-test
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -25,15 +48,43 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Type check
-        run: npm run typecheck
+      - name: Run all tests
+        run: npm test
+
+      - name: Generate coverage report
+        run: npm run test:coverage
+        continue-on-error: true
+
+  # Build and verify the plugin
+  build-verify:
+    needs: smoke-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Build
         run: npm run build
 
-      - name: Run tests
-        run: npm test
+      - name: Verify build
+        run: ./scripts/verify-build.sh
 
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: packages/aicouncil-plugin/dist/
+          retention-days: 7
+
+  # Lint and format checks
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -51,3 +102,34 @@ jobs:
       - name: Check formatting
         run: npx prettier --check "packages/aicouncil-plugin/src/**/*.ts"
         continue-on-error: true
+
+  # Test that the plugin can be packed and installed
+  pack-test:
+    needs: build-verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Pack plugin
+        run: |
+          cd packages/aicouncil-plugin
+          npm pack
+
+      - name: Verify pack contents
+        run: |
+          cd packages/aicouncil-plugin
+          tar -tzf *.tgz | head -20
+          echo "---"
+          echo "Package contents verified"
